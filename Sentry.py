@@ -103,10 +103,13 @@ while True:
 #	logging.basicConfig(filename='Sentry.log',level=logging.DEBUG)
 #	logging.debug(data)
 	data = convertTuple(data)
-	vbat = vbat/1000
-	vio = vio/1000
-	wbat = round (vbat*ibat,2)
-	wio = round (vio*iio,2)
+	ibat = round(ibat,2)
+	iio = round(iio,2)
+	vbat = round (vbat/1000,2)
+	vio = round (vio/1000,2)
+	wbat = round (vbat*ibat,3)
+	wio = round (vio*iio,3)
+	wnet = round (wbat-wio,2)
 	os.system('clear')
 	print (now)
 	print ("")
@@ -114,9 +117,9 @@ while True:
 	print ("PI Supply:\t", RPIPower)
 	print ("")
 	print ("Charge Level:\t",charge_level, "%\t", charge_status)
-	print ("Vbat: \t", vbat, "v \t IBat: \t ",ibat, " mA \t Pbat: \t", wbat, "mW")
-	print ("Vio : \t", vio, "v \t Iio: \t ", iio, "mA \t Pio: \t", wio, "mW")
-
+	print ("Vbat: \t", vbat, "v  \t IBat: \t ",ibat, " mA \t Pbat: \t", wbat, "mW")
+	print ("Vio : \t", vio, "v  \t Iio : \t ", iio, "mA \t Pio : \t", wio, "mW")
+	print ("\t\t\t\t\t\t Wnet: \t", wnet, "mW")
 	Sen = mysql.connector.connect(
 		host="localhost",
                	user="pi",
@@ -125,8 +128,8 @@ while True:
         )
 
 	data = Sen.cursor()
-	sql = "INSERT INTO Sentry.BattDATA (date,ChargeLevel,ChargeStatus,Vbat,IBat,Wbat,Vio,Iio,Wio,RPIPower,HATPower) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-	val = (now,charge_level,charge_status,vbat,ibat,wbat,vio,iio,wio,RPIPower,HatPower)
+	sql = "INSERT INTO Sentry.BattDATA (date,ChargeLevel,ChargeStatus,Vbat,IBat,Wbat,Vio,Iio,Wio,NetW,RPIPower,HATPower) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+	val = (now,charge_level,charge_status,vbat,ibat,wbat,vio,iio,wio,wnet,RPIPower,HatPower)
 	data.execute(sql, val)
 	Sen.commit()
 	data.close
