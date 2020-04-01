@@ -11,7 +11,7 @@ import pijuice
 import subprocess
 import datetime
 import mysql.connector
-
+import smtplib
 
 pijuice = PiJuice(1, 0x14) # Instantiate PiJuice interface object
 
@@ -21,7 +21,8 @@ def convertTuple(data):
 
 def gotobed(pijuice):
 
-	DELTA_MIN=5
+	DELTA_MIN=50
+	DELTA_HOUR=4
 	# Rely on RTC to keep the time
 	subprocess.call(["sudo", "hwclock", "--hctosys"])
 	# Record start time
@@ -67,10 +68,61 @@ def gotobed(pijuice):
 	# PiJuice shuts down power to Rpi after 20 sec from now
 	# This leaves sufficient time to execute the shutdown sequence
 	print ('alarm set ,ready for shut')
+	now = dt.now()
+	now = now.strftime("%Y-%m-%d %H:%M:%S")
+	charge_level = pijuice.status.GetChargeLevel().get('data', -1)
+	message = "going to bed for ", a['minute'], "minutes, its", now, "i still have",charge_level ,"%"
+#	message = str(message)
+	sendEmail(message)
 	pijuice.power.SetPowerOff(20)
 	subprocess.call(["sudo", "poweroff"])
 
 
+def sendEmail(message):
+ 
+	#Email Variables
+	SMTP_SERVER = 'smtp.gmail.com' #Email Server (don't change!)
+	SMTP_PORT = 587 #Server Port (don't change!)
+	GMAIL_USERNAME = 'XXXXXXX514@gmail.com' #change this to match your gmail account
+	GMAIL_PASSWORD = 'a-51d41e'  #change this to match your gmail password
+ 
+	class Emailer:
+		def sendmail(self, recipient, subject, content):
+
+			#Create Headers
+			headers = ["From: " + GMAIL_USERNAME, "Subject: " + subject, "To: " + recipient,
+				"MIME-Version: 1.0", "Content-Type: text/html"]
+			headers = "\r\n".join(headers)
+
+			#Connect to Gmail Server
+			session = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+			session.ehlo()
+			session.starttls()
+			session.ehlo()
+
+			#Login to Gmail
+			session.login(GMAIL_USERNAME, GMAIL_PASSWORD)
+
+			#Send Email & Exit
+			session.sendmail(GMAIL_USERNAME, recipient, headers + "\r\n\r\n" + content)
+			session.quit
+
+	sender = Emailer()
+
+	sendTo = 'eric.soulliage@gmail.com'
+	emailSubject = "SentryBot repport"
+	message = repr(message)
+	#Sends an email to the "sendTo" address with the specified "emailSubject" as the subject and "emailContent" as the email content.
+	message = convertTuple(message)
+	sender.sendmail(sendTo, emailSubject, message) 
+
+
+now = dt.now()
+now = now.strftime("%Y-%m-%d %H:%M:%S")
+charge_level = pijuice.status.GetChargeLevel().get('data', -1)
+message = "i wokeup at", now, "with ",charge_level ,"%"
+message = str(message)
+sendEmail(message)
 while True:
 	now = dt.now()
 	now = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -109,7 +161,7 @@ while True:
 	vio = round (vio/1000,2)
 	wbat = round (vbat*ibat,3)
 	wio = round (vio*iio,3)
-	wnet = round (wbat-wio,2)
+	wnet = round (wio+wbat,2)
 	os.system('clear')
 	print (now)
 	print ("")
@@ -134,7 +186,7 @@ while True:
 	Sen.commit()
 	data.close
 	charge_level = int(charge_level)
-	if (charge_level < 20 and  RPIPower != 'PRESENT'):
+	if (charge_level < 35 and  RPIPower != 'PRESENT'):
 		gotobed(pijuice)
 
 	time.sleep(4)
