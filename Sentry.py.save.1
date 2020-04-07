@@ -21,7 +21,7 @@ def convertTuple(data):
 
 def gotobed(pijuice):
 
-	DELTA_MIN=00
+	DELTA_MIN=15
 	DELTA_HOUR=4
 	# Rely on RTC to keep the time
 	subprocess.call(["sudo", "hwclock", "--hctosys"])
@@ -53,7 +53,7 @@ def gotobed(pijuice):
 	a['day'] = 'EVERY_DAY'
 	a['hour'] = 'EVERY_HOUR'
 	t = datetime.datetime.utcnow()
-	a['minute'] = (t.minute + DELTA_MIN + (DELTA_HOUR * 60))
+	a['minute'] = (t.minute + DELTA_MIN) #% 60
 	a['second'] = 0
 	status = pijuice.rtcAlarm.SetAlarm(a)
 	if status['error'] != 'NO_ERROR':
@@ -84,7 +84,7 @@ def sendEmail(message):
 	SMTP_SERVER = 'smtp.gmail.com' #Email Server (don't change!)
 	SMTP_PORT = 587 #Server Port (don't change!)
 	GMAIL_USERNAME = 'naughty514@gmail.com' #change this to match your gmail account
-	GMAIL_PASSWORD = '0ph3l13..'  #change this to match your gmail password
+	GMAIL_PASSWORD = 'a-51d41e'  #change this to match your gmail password
  
 	class Emailer:
 		def sendmail(self, recipient, subject, content):
@@ -155,13 +155,13 @@ while True:
 #	logging.basicConfig(filename='Sentry.log',level=logging.DEBUG)
 #	logging.debug(data)
 	data = convertTuple(data)
-	ibat = round(ibat/1000,2)
-	iio = round(iio/1000,2)
+	ibat = round(ibat,2)
+	iio = round(iio,2)
 	vbat = round (vbat/1000,2)
 	vio = round (vio/1000,2)
 	wbat = round (vbat*ibat,3)
 	wio = round (vio*iio,3)
-	wnet = round (wbat-wio,2)
+	wnet = round (wio+wbat,2)
 	os.system('clear')
 	print (now)
 	print ("")
@@ -186,8 +186,7 @@ while True:
 	Sen.commit()
 	data.close
 	charge_level = int(charge_level)
-#	if (charge_level < 25 and  RPIPower != 'PRESENT'):
-	if (charge_level < 75 and not ("CHARGING" in charge_status)):
+	if (charge_level < 25 and  (RPIPower = 'NOT_PRESENT' or RPIPower = 'BAD'):
 		gotobed(pijuice)
 
 	time.sleep(4)
